@@ -2,9 +2,11 @@
 title: "Geovisor de datos GNSS"
 output: 
   flexdashboard::flex_dashboard:
-    orientation: columns
+    orientation: rows
     vertical_layout: fill
 ---
+
+
 
 ```{r setup, include=FALSE}
 library(flexdashboard)
@@ -26,6 +28,7 @@ library(raster)
 library(leaflet)
 library(leaflet.providers)
 library(leaflet.extras)
+library(leaflet.extras2)
 
 # Paquetes para graficación
 library(ggplot2)
@@ -34,28 +37,29 @@ library(plotly)
 library(DT)
 
 library(tidyverse)
-```
 
+library(htmlwidgets)
+```
 
 ```{r cargadatos}
 # Lectura de una capa vectorial (GeoJSON) de provincias proyectos de Montes de Oca
 proyectos <-
   st_read(
-    "https://raw.githubusercontent.com/MontserratJB/Proyecto-2021/master/Presupuestos.geojson",
+    "https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Presupuestos.geojson",
     quiet = TRUE
   )
 
 # Lectura de una capa vectorial (GeoJSON) de distritos de Montes de Oca
 distritos <-
   st_read(
-    "https://raw.githubusercontent.com/MontserratJB/Proyecto-2021/master/Distritos.geojson",
+    "https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Distritos.geojson",
     quiet = TRUE
   )
 
 # Lectura de un archivo CSV con datos de Presupuestos participativos en Montes de Oca
 presupuesto <-
   st_read(
-    "/vsicurl/https://raw.githubusercontent.com/MontserratJB/Proyecto-2021/master/Pres_part.csv",
+    "/vsicurl/https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Pres_part.csv",
     options = c(
       "X_POSSIBLE_NAMES=decimalLongitude",
       "Y_POSSIBLE_NAMES=decimalLatitude"
@@ -72,17 +76,17 @@ Column {data-width=450}
 ### Mapa
 
 ```{r mapa-leaflet}
-#Conversión del objeto mapa a la clase Raster Layer
-altitud_rl <- raster::raster(altitud)
+
 
 leaflet() %>%
-  setView(lng = -84.005, lat = 9.94, zoom = 13) %>%
-  addTiles() %>% 
-  addRasterImage(
-    altitud_rl, 
-    opacity = 0.5,
-    group = "Altitud"
-  ) %>%  
+  setView(lng = -84.005, 
+          lat = 9.94, 
+          zoom = 13) %>%
+    addTiles(group = "OSM") %>%
+    addProviderTiles(providers$CartoDB.DarkMatter, group = "CartoDB-Black") %>%
+    addProviderTiles("Esri.WorldImagery", group = "ESRI") %>%  
+    addScaleBar() %>% 
+ 
   addPolygons(
     data = distritos,
     color = "blue",
@@ -100,54 +104,47 @@ leaflet() %>%
     group = "Proyectos"
     ) %>%
   
-addMeasurePathToolbar(
-  options = measurePathOptions(imperial = FALSE,
-  minPixelDistance = 100,
-  showDistances = TRUE)) %>%
- 
-  addProviderTiles(
-    providers$Esri.WorldImagery, group = "ESRI") %>%
-  addProviderTiles(
-    providers$Stamen.Toner, group = "Toner") %>%
   addLayersControl(
-    baseGroups = c("Toner","ESRI","Altitud"),
-    overlayGroups = c("Distritos","Proyectos"),
-    options = layersControlOptions(collapsed = T)
-  )
+      "bottomleft",
+      baseGroups = c("OSM", "CartoDB-Black", "ESRI"),
+      overlayGroups = c(
+        "Distritos" ,
+        "Proyectos"
+      ),
+      options = layersControlOptions(collapsed = TRUE)
+    ) %>%
+    
+    addScaleBar("bottomright") %>%
+    addMiniMap() %>%
+    addResetMapButton() %>%
+    addFullscreenControl() %>%
+    addControlGPS() %>%
+    addSearchOSM() %>%
+     onRender("
+      function(el, x) {
+        var map = this;
+
+        var coordsDiv = L.control({position: 'bottomleft'});
+  
+        coordsDiv.onAdd = function () {
+          this._div = L.DomUtil.create('div', 'mouse-coords');
+          this._div.style.padding = '4px';
+          this._div.style.background = 'rgba(255,255,255,0.8)';
+          this._div.style.font = '12px sans-serif';
+          this._div.innerHTML = 'Move the mouse over the map';
+          return this._div;
+        };
+  
+        coordsDiv.addTo(map);
+  
+        map.on('mousemove', function(e) {
+          coordsDiv._div.innerHTML = 
+            'Lat: ' + e.latlng.lat.toFixed(5) + 
+            ' , Lng: ' + e.latlng.lng.toFixed(5);
+        });
+      }
+    ")
+  
 ```
 
-
-Column {data-width=250}
------------------------------------------------------------------------
-
-### Grafico Presupuesto
-
-```{r grafico-presupuestos}
-presupuesto %>%
-  group_by(Distrito) %>%
-  summarize(suma_Presupuesto = sum(as.numeric(Presupuesto))) %>%
-  plot_ly(x = ~ Distrito,
-          y = ~ suma_Presupuesto,
-          type="bar", color = I("green")) %>%
-  layout(title = "Presupuestos participativos por Distrito",
-         xaxis = list(title = "Distrito"),
-         yaxis = list(title = "Monto en Colones")) %>%
-  config(locale = "es")
-```
-
-### Gráfico Distritos
-
-```{r proyectos}
-# Gráfico de estacionalidad
-presupuesto %>%
-  group_by(Distrito) %>%
-  summarize(suma_proyectos = n()) %>%
-  plot_ly(x = ~ Distrito,
-          y = ~ suma_proyectos,
-          type="bar", mode="markers", fill = "tozeroy", fillcolor = "green") %>%
-  layout(title = "Proyectos por Distrito",
-         xaxis = list(title = "Distritos"),
-         yaxis = list(title = "Número de proyectos")) %>%
-  config(locale = "es")
-```
 
