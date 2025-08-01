@@ -39,6 +39,9 @@ library(DT)
 library(tidyverse)
 
 library(htmlwidgets)
+
+library(purrr)
+
 ```
 
 ```{r cargadatos}
@@ -76,7 +79,14 @@ Column {data-width=450}
 ### Mapa
 
 ```{r mapa-leaflet}
-
+# Crear los popups dinámicos con todos los atributos
+popup_proyectos <- lapply(seq_len(nrow(proyectos)), function(i) {
+  row <- proyectos[i, ]
+  paste(
+    sapply(names(row), function(n) paste0("<strong>", n, ":</strong> ", row[[n]])),
+    collapse = "<br>"
+  )
+})
 
 leaflet() %>%
   setView(lng = -84.005, 
@@ -84,7 +94,8 @@ leaflet() %>%
           zoom = 13) %>%
     addTiles(group = "OSM") %>%
     addProviderTiles(providers$CartoDB.DarkMatter, group = "CartoDB-Black") %>%
-    addProviderTiles("Esri.WorldImagery", group = "ESRI") %>%  
+    addProviderTiles("Esri.WorldImagery", group = "ESRI") %>%
+    
     addScaleBar() %>% 
  
   addPolygons(
@@ -93,15 +104,16 @@ leaflet() %>%
     fillColor = "transparent",
     stroke = TRUE,
     weight = 3.0,
-    group = "Distritos",
-  ) %>%
+    group = "Distritos"
+    ) %>%
   addCircleMarkers(
     data = proyectos,
     stroke = F,
     radius = 3.5,
-    fillColor = 'orange',
+    fillColor = 'red',
     fillOpacity = 1,
-    group = "Proyectos"
+    group = "Proyectos",
+    popup = popup_proyectos
     ) %>%
   
   addLayersControl(
