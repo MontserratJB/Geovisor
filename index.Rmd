@@ -1,0 +1,153 @@
+---
+title: "Geovisor de datos GNSS"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: columns
+    vertical_layout: fill
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+```
+
+
+```{r import, warning=FALSE, message=FALSE}
+# Paquete para manipulación de datos
+library(dplyr)
+
+# Paquete para manejo de datos vectoriales
+library(sf)
+
+# Paquetes para manejo de datos raster
+library(terra)
+library(raster)
+
+# Paquete para mapas interactivos
+library(leaflet)
+library(leaflet.providers)
+library(leaflet.extras)
+
+# Paquetes para graficación
+library(ggplot2)
+library(plotly)
+
+library(DT)
+
+library(tidyverse)
+```
+
+
+```{r cargadatos}
+# Lectura de una capa vectorial (GeoJSON) de provincias proyectos de Montes de Oca
+proyectos <-
+  st_read(
+    "https://raw.githubusercontent.com/MontserratJB/Proyecto-2021/master/Presupuestos.geojson",
+    quiet = TRUE
+  )
+
+# Lectura de una capa vectorial (GeoJSON) de distritos de Montes de Oca
+distritos <-
+  st_read(
+    "https://raw.githubusercontent.com/MontserratJB/Proyecto-2021/master/Distritos.geojson",
+    quiet = TRUE
+  )
+
+# Lectura de un archivo CSV con datos de Presupuestos participativos en Montes de Oca
+presupuesto <-
+  st_read(
+    "/vsicurl/https://raw.githubusercontent.com/MontserratJB/Proyecto-2021/master/Pres_part.csv",
+    options = c(
+      "X_POSSIBLE_NAMES=decimalLongitude",
+      "Y_POSSIBLE_NAMES=decimalLatitude"
+    ),
+    quiet = TRUE
+  )
+
+```
+
+
+Column {data-width=450}
+-----------------------------------------------------------------------
+
+### Mapa
+
+```{r mapa-leaflet}
+#Conversión del objeto mapa a la clase Raster Layer
+altitud_rl <- raster::raster(altitud)
+
+leaflet() %>%
+  setView(lng = -84.005, lat = 9.94, zoom = 13) %>%
+  addTiles() %>% 
+  addRasterImage(
+    altitud_rl, 
+    opacity = 0.5,
+    group = "Altitud"
+  ) %>%  
+  addPolygons(
+    data = distritos,
+    color = "blue",
+    fillColor = "transparent",
+    stroke = TRUE,
+    weight = 3.0,
+    group = "Distritos",
+  ) %>%
+  addCircleMarkers(
+    data = proyectos,
+    stroke = F,
+    radius = 3.5,
+    fillColor = 'orange',
+    fillOpacity = 1,
+    group = "Proyectos"
+    ) %>%
+  
+addMeasurePathToolbar(
+  options = measurePathOptions(imperial = FALSE,
+  minPixelDistance = 100,
+  showDistances = TRUE)) %>%
+ 
+  addProviderTiles(
+    providers$Esri.WorldImagery, group = "ESRI") %>%
+  addProviderTiles(
+    providers$Stamen.Toner, group = "Toner") %>%
+  addLayersControl(
+    baseGroups = c("Toner","ESRI","Altitud"),
+    overlayGroups = c("Distritos","Proyectos"),
+    options = layersControlOptions(collapsed = T)
+  )
+```
+
+
+Column {data-width=250}
+-----------------------------------------------------------------------
+
+### Grafico Presupuesto
+
+```{r grafico-presupuestos}
+presupuesto %>%
+  group_by(Distrito) %>%
+  summarize(suma_Presupuesto = sum(as.numeric(Presupuesto))) %>%
+  plot_ly(x = ~ Distrito,
+          y = ~ suma_Presupuesto,
+          type="bar", color = I("green")) %>%
+  layout(title = "Presupuestos participativos por Distrito",
+         xaxis = list(title = "Distrito"),
+         yaxis = list(title = "Monto en Colones")) %>%
+  config(locale = "es")
+```
+
+### Gráfico Distritos
+
+```{r proyectos}
+# Gráfico de estacionalidad
+presupuesto %>%
+  group_by(Distrito) %>%
+  summarize(suma_proyectos = n()) %>%
+  plot_ly(x = ~ Distrito,
+          y = ~ suma_proyectos,
+          type="bar", mode="markers", fill = "tozeroy", fillcolor = "green") %>%
+  layout(title = "Proyectos por Distrito",
+         xaxis = list(title = "Distritos"),
+         yaxis = list(title = "Número de proyectos")) %>%
+  config(locale = "es")
+```
+
