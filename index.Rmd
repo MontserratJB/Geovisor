@@ -46,9 +46,9 @@ library(purrr)
 
 ```{r cargadatos}
 # Lectura de una capa vectorial (GeoJSON) de provincias proyectos de Montes de Oca
-proyectos <-
+mojones <-
   st_read(
-    "https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Presupuestos.geojson",
+    "https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Mojones.geojson",
     quiet = TRUE
   )
 
@@ -80,8 +80,8 @@ Column {data-width=450}
 
 ```{r mapa-leaflet}
 # Crear los popups dinámicos con todos los atributos
-popup_proyectos <- lapply(seq_len(nrow(proyectos)), function(i) {
-  row <- proyectos[i, ]
+popup_mojones <- lapply(seq_len(nrow(mojones)), function(i) {
+  row <- mojones[i, ]
   paste(
     sapply(names(row), function(n) paste0("<strong>", n, ":</strong> ", row[[n]])),
     collapse = "<br>"
@@ -90,9 +90,9 @@ popup_proyectos <- lapply(seq_len(nrow(proyectos)), function(i) {
 
 #Creación del mapa con mapas base
 leaflet() %>%
-  setView(lng = -84.005, 
-          lat = 9.94, 
-          zoom = 13) %>%
+  setView(lng = -83.912, 
+          lat = 9.78, 
+          zoom = 8) %>%
     addProviderTiles(providers$CartoDB.DarkMatter, group = "CartoDB-Black") %>%
     addTiles(group = "OSM") %>%
     addProviderTiles("Esri.WorldImagery", group = "ESRI") %>%
@@ -110,14 +110,14 @@ leaflet() %>%
   
    # Marcadores usando geometría del objeto sf
   addMarkers(
-    data = proyectos,
-    popup = popup_proyectos,
-    group = "Proyectos"
+    data = mojones,
+    popup = popup_mojones,
+    group = "Mojones"
   ) %>%
   
   addLayersControl(
     baseGroups = c("ESRI", "CartoDB-Black", "OSM"),
-    overlayGroups = c("Distritos", "Proyectos"),
+    overlayGroups = c("Distritos", "Mojones"),
     options = layersControlOptions(collapsed = TRUE),
     position = "bottomleft"
   ) %>%
