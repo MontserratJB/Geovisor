@@ -39,7 +39,7 @@ library(DT)
 library(tidyverse)
 
 library(htmlwidgets)
-
+library(htmltools)
 library(purrr)
 
 ```
@@ -88,12 +88,13 @@ popup_proyectos <- lapply(seq_len(nrow(proyectos)), function(i) {
   )
 })
 
+#Creación del mapa con mapas base
 leaflet() %>%
   setView(lng = -84.005, 
           lat = 9.94, 
           zoom = 13) %>%
-    addTiles(group = "OSM") %>%
     addProviderTiles(providers$CartoDB.DarkMatter, group = "CartoDB-Black") %>%
+    addTiles(group = "OSM") %>%
     addProviderTiles("Esri.WorldImagery", group = "ESRI") %>%
     
     addScaleBar() %>% 
@@ -106,25 +107,20 @@ leaflet() %>%
     weight = 3.0,
     group = "Distritos"
     ) %>%
-  addCircleMarkers(
+  
+   # Marcadores usando geometría del objeto sf
+  addMarkers(
     data = proyectos,
-    stroke = F,
-    radius = 3.5,
-    fillColor = 'red',
-    fillOpacity = 1,
-    group = "Proyectos",
-    popup = popup_proyectos
-    ) %>%
+    popup = popup_proyectos,
+    group = "Proyectos"
+  ) %>%
   
   addLayersControl(
-      "bottomleft",
-      baseGroups = c("OSM", "CartoDB-Black", "ESRI"),
-      overlayGroups = c(
-        "Distritos" ,
-        "Proyectos"
-      ),
-      options = layersControlOptions(collapsed = TRUE)
-    ) %>%
+    baseGroups = c("ESRI", "CartoDB-Black", "OSM"),
+    overlayGroups = c("Distritos", "Proyectos"),
+    options = layersControlOptions(collapsed = TRUE),
+    position = "bottomleft"
+  ) %>%
     
     addScaleBar("bottomright") %>%
     addMiniMap() %>%
@@ -132,6 +128,7 @@ leaflet() %>%
     addFullscreenControl() %>%
     addControlGPS() %>%
     addSearchOSM() %>%
+#Creacion de las coordenadas del cursor    
      onRender("
       function(el, x) {
         var map = this;
@@ -154,8 +151,9 @@ leaflet() %>%
             'Lat: ' + e.latlng.lat.toFixed(5) + 
             ' , Lng: ' + e.latlng.lng.toFixed(5);
         });
-      }
-    ")
+    }
+  ")
+     
   
 ```
 
