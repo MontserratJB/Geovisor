@@ -81,7 +81,7 @@ Column {data-width=450}
 
 #Icono de mojones
 icono_mojones <- makeIcon(
-  iconUrl = "https://github.com/MontserratJB/Geovisor/blob/main/pin02.png",
+  iconUrl = "https://github.com/MontserratJB/Geovisor/blob/main/pin.png",
   iconWidth = 20,
   iconHeight = 20
 )
