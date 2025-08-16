@@ -134,10 +134,22 @@ leaflet() %>%
    popup = popup_mojones,
    group = "Mojones"
   ) %>%
+  
+  
+  addWMSTiles(
+    baseUrl = "https://siri.snitcr.go.cr/Geoservicios/wms?",
+    layers = "catastro",
+    options = WMSTileOptions(
+      format = "image/png",
+      transparent = TRUE
+    ),
+    group = "Zona Catastrada"
+  ) %>%
+
 
   addLayersControl(
     baseGroups = c("ESRI", "CartoDB-Black", "OSM"),
-    overlayGroups = c("Cantones", "Mojones"),
+    overlayGroups = c("Cantones", "Zona Catastrada", "Mojones"),
     options = layersControlOptions(collapsed = TRUE),
     position = "bottomleft"
   ) %>%
