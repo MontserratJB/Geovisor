@@ -1,5 +1,5 @@
 ---
-title: "Geovisor de datos GNSS"
+title: "Proyecto de amojonamiento, datos GNSS"
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
@@ -53,9 +53,9 @@ mojones <-
   )
 
 # Lectura de una capa vectorial (GeoJSON) de distritos de Montes de Oca
-distritos <-
+cantones <-
   st_read(
-    "https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Distritos.geojson",
+    "https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Cantones.geojson",
     quiet = TRUE
   )
 
@@ -69,7 +69,6 @@ presupuesto <-
     ),
     quiet = TRUE
   )
-
 ```
 
 
@@ -79,14 +78,24 @@ Column {data-width=450}
 ### Mapa
 
 ```{r mapa-leaflet}
-# Crear los popups dinámicos con todos los atributos
+
+# Crear los popups dinámicos con hipervínculos cuando el valor es URL
 popup_mojones <- lapply(seq_len(nrow(mojones)), function(i) {
   row <- mojones[i, ]
   paste(
-    sapply(names(row), function(n) paste0("<strong>", n, ":</strong> ", row[[n]])),
+    sapply(names(row), function(n) {
+      valor <- row[[n]]
+      if (grepl("^https?://", valor)) {
+        paste0("<strong>", n, ":</strong> ",
+               "<a href='", valor, "' target='_blank'>", valor, "</a>")
+      } else {
+        paste0("<strong>", n, ":</strong> ", valor)
+      }
+    }),
     collapse = "<br>"
   )
 })
+
 
 #Creación del mapa con mapas base
 leaflet() %>%
@@ -100,24 +109,24 @@ leaflet() %>%
     addScaleBar() %>% 
  
   addPolygons(
-    data = distritos,
+    data = cantones,
     color = "blue",
     fillColor = "transparent",
     stroke = TRUE,
     weight = 3.0,
-    group = "Distritos"
+    group = "Cantones"
     ) %>%
   
-   # Marcadores usando geometría del objeto sf
+  # Marcadores usando geometría del objeto sf
   addMarkers(
     data = mojones,
     popup = popup_mojones,
     group = "Mojones"
   ) %>%
-  
+
   addLayersControl(
     baseGroups = c("ESRI", "CartoDB-Black", "OSM"),
-    overlayGroups = c("Distritos", "Mojones"),
+    overlayGroups = c("Cantones", "Mojones"),
     options = layersControlOptions(collapsed = TRUE),
     position = "bottomleft"
   ) %>%
@@ -128,9 +137,10 @@ leaflet() %>%
     addFullscreenControl() %>%
     addControlGPS() %>%
     addSearchOSM() %>%
+  
 #Creacion de las coordenadas del cursor    
      onRender("
-      function(el, x) {
+        function(el, x) {
         var map = this;
 
         var coordsDiv = L.control({position: 'bottomleft'});
@@ -153,8 +163,8 @@ leaflet() %>%
         });
     }
   ")
-     
-  
+
 ```
+
 
 
