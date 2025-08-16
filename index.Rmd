@@ -81,7 +81,7 @@ Column {data-width=450}
 
 #Icono de mojones
 icono_mojones <- makeIcon(
-  iconUrl = "https://raw.githubusercontent.com/MontserratJB/Geovisor/main/pin.png",
+  iconUrl = "https://github.com/MontserratJB/Geovisor/blob/main/pin02.png",
   iconWidth = 20,
   iconHeight = 20
 )
@@ -130,10 +130,10 @@ leaflet() %>%
    data = mojones,
    lng = ~Longitud,
    lat = ~Latitud,
-    icon = icono_mojones,
+   icon = icono_mojones,
    popup = popup_mojones,
    group = "Mojones"
-) %>%
+  ) %>%
 
   addLayersControl(
     baseGroups = c("ESRI", "CartoDB-Black", "OSM"),
