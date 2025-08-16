@@ -79,6 +79,14 @@ Column {data-width=450}
 
 ```{r mapa-leaflet}
 
+#Icono de mojones
+icono_mojones <- makeIcon(
+  iconUrl = "https://raw.githubusercontent.com/MontserratJB/Geovisor/main/pin.png",
+  iconWidth = 20,
+  iconHeight = 20
+)
+
+
 # Crear los popups dinámicos con hipervínculos cuando el valor es URL
 popup_mojones <- lapply(seq_len(nrow(mojones)), function(i) {
   row <- mojones[i, ]
@@ -117,12 +125,15 @@ leaflet() %>%
     group = "Cantones"
     ) %>%
   
-  # Marcadores usando geometría del objeto sf
+  
   addMarkers(
-    data = mojones,
-    popup = popup_mojones,
-    group = "Mojones"
-  ) %>%
+   data = mojones,
+   lng = ~Longitud,
+   lat = ~Latitud,
+    icon = icono_mojones,
+   popup = popup_mojones,
+   group = "Mojones"
+) %>%
 
   addLayersControl(
     baseGroups = c("ESRI", "CartoDB-Black", "OSM"),
