@@ -127,7 +127,7 @@ popup_mojones <- lapply(seq_len(nrow(mojones)), function(i) {
 output$mapa <- renderLeaflet({
 leaflet() %>%
   setView(lng = -83.912, 
-          lat = 9.78, 
+          lat = 9.45, 
           zoom = 8) %>%
     addProviderTiles(providers$CartoDB.DarkMatter, group = "CartoDB-Black") %>%
     addTiles(group = "OSM") %>%
