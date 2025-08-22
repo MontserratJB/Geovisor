@@ -4,44 +4,27 @@ output:
   flexdashboard::flex_dashboard:
     orientation: rows
     vertical_layout: fill
+runtime: shiny
 ---
-
-
 
 ```{r setup, include=FALSE}
 library(flexdashboard)
-```
-
-
-```{r import, warning=FALSE, message=FALSE}
-# Paquete para manipulación de datos
 library(dplyr)
-
-# Paquete para manejo de datos vectoriales
 library(sf)
-
-# Paquetes para manejo de datos raster
 library(terra)
 library(raster)
-
-# Paquete para mapas interactivos
 library(leaflet)
 library(leaflet.providers)
 library(leaflet.extras)
 library(leaflet.extras2)
-
-# Paquetes para graficación
 library(ggplot2)
 library(plotly)
-
 library(DT)
-
 library(tidyverse)
-
 library(htmlwidgets)
 library(htmltools)
 library(purrr)
-
+library(shiny)
 ```
 
 ```{r cargadatos}
@@ -59,25 +42,19 @@ cantones <-
     quiet = TRUE
   )
 
-# Lectura de un archivo CSV con datos de Presupuestos participativos en Montes de Oca
-presupuesto <-
-  st_read(
-    "/vsicurl/https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Pres_part.csv",
-    options = c(
-      "X_POSSIBLE_NAMES=decimalLongitude",
-      "Y_POSSIBLE_NAMES=decimalLatitude"
-    ),
-    quiet = TRUE
-  )
 ```
 
 
-Column {data-width=450}
------------------------------------------------------------------------
-
-### Mapa
-
 ```{r mapa-leaflet}
+
+# Estilo global para popups
+tags$style(HTML("
+  .leaflet-popup-content {
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    max-width: 250px;
+  }
+"))
 
 #Icono de mojones
 icono_mojones <- makeIcon(
@@ -104,8 +81,8 @@ popup_mojones <- lapply(seq_len(nrow(mojones)), function(i) {
   )
 })
 
-
 #Creación del mapa con mapas base
+output$mapa <- renderLeaflet({
 leaflet() %>%
   setView(lng = -83.912, 
           lat = 9.78, 
@@ -138,28 +115,49 @@ leaflet() %>%
   
   addWMSTiles(
     baseUrl = "https://siri.snitcr.go.cr/Geoservicios/wms?",
-    layers = "catastro",
+    layers = "catastro:catastro",
     options = WMSTileOptions(
       format = "image/png",
       transparent = TRUE
     ),
     group = "Zona Catastrada"
   ) %>%
-
-
+    
+  hideGroup("Zona Catastrada") %>%  # <- esto la oculta al inicio
   addLayersControl(
     baseGroups = c("ESRI", "CartoDB-Black", "OSM"),
     overlayGroups = c("Cantones", "Zona Catastrada", "Mojones"),
     options = layersControlOptions(collapsed = TRUE),
     position = "bottomleft"
-  ) %>%
-    
+  )%>%
+
     addScaleBar("bottomright") %>%
     addMiniMap() %>%
     addResetMapButton() %>%
     addFullscreenControl() %>%
     addControlGPS() %>%
     addSearchOSM() %>%
+  
+#Botones de descarga
+  addControl(
+  html = '
+  <div style="
+       background:#28a745;           /* color verde */
+       padding:4px 8px;              /* espacio interno */
+       border-radius:5px;            /* bordes redondeados */
+       text-align:center; 
+       box-shadow: 0px 2px 6px rgba(0,0,0,0.3);
+       font-weight: normal;           /* letra normal */
+       cursor:pointer;">
+    <a href="https://drive.google.com/uc?export=download&id=1vlRIi4IuviA7z_9T0G6np-4OVXj-1vWe" 
+       target="_blank" 
+       style="color:white; text-decoration:none;">
+       📍 Descargar capa Mojones
+    </a>
+  </div>
+  ',
+  position = "topright"
+) %>%
   
 #Creacion de las coordenadas del cursor    
      onRender("
@@ -186,8 +184,15 @@ leaflet() %>%
         });
     }
   ")
+})
+
+# Output del mapa
+leafletOutput("mapa", height = "600px")
+
 
 ```
+
+
 
 
 
