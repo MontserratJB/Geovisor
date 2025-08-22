@@ -4,8 +4,8 @@ output:
   flexdashboard::flex_dashboard:
     orientation: rows
     vertical_layout: fill
-    navbar:
-      - { title: "", href: "#" }
+    self_contained: false
+    theme: default
 runtime: shiny
 ---
 
@@ -28,45 +28,103 @@ library(htmltools)
 library(purrr)
 library(shiny)
 library(shinydashboard)
+
+# Verificar si estamos en GitHub Pages
+is_github_pages <- grepl("github.io", Sys.getenv("SERVER_NAME", ""))
 ```
 
 ```{=html}
-<!-- CSS para ocultar completamente el encabezado de flexdashboard -->
-<style>
-.navbar-brand {
+<!-- CSS mejorado para GitHub Pages -->
+<style type="text/css">
+/* Ocultar completamente todos los elementos del navbar */
+.navbar, .navbar-inverse, .navbar-default {
   display: none !important;
-}
-.navbar-header {
-  display: none !important;
-}
-.navbar {
-  display: none !important;
-}
-.navbar-inverse {
-  display: none !important;
-}
-.section.level1 h1 {
-  display: none !important;
-}
-/* Eliminar cualquier encabezado azul */
-.chart-title {
-  display: none !important;
-}
-/* Asegurar que el contenido ocupe todo el espacio */
-body, html {
+  height: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
 }
+
+.navbar-brand, .navbar-header {
+  display: none !important;
+}
+
+/* Ocultar títulos */
+.section.level1 > h1:first-child,
+.chart-title,
+h1.title {
+  display: none !important;
+}
+
+/* Asegurar que el contenido empiece desde arriba */
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 .container-fluid {
   padding: 0 !important;
+  margin: 0 !important;
+}
+
+.chart-wrapper {
+  margin-top: 0 !important;
+}
+
+/* Estilo para el encabezado personalizado */
+.custom-header {
+  width: 100%;
+  text-align: center;
+  background-color: #ffffff;
+  padding: 0;
+  margin: 0;
+  display: block;
+  position: relative;
+  z-index: 1000;
+}
+
+.custom-header img {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 0;
+  border: none;
 }
 </style>
 
-<!-- Encabezado personalizado con imagen -->
-<div style="width: 100%; text-align: center; background-color: #ffffff; padding: 0px; margin: 0px;">
-  <img src="https://raw.githubusercontent.com/MontserratJB/Geovisor/main/encabezado.png"
-       style="width: 100%; height: auto; display: block; margin: 0;">
+<!-- Encabezado personalizado con verificación de URL -->
+<div class="custom-header">
+  <img src="https://raw.githubusercontent.com/MontserratJB/Geovisor/main/encabezado.png" 
+       alt="Encabezado del proyecto"
+       onerror="this.style.display='none'; console.log('Error cargando imagen del encabezado');">
 </div>
+
+<!-- Script para forzar la ocultación del navbar después de que la página cargue -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Ocultar navbar después de que la página cargue
+  setTimeout(function() {
+    var navbars = document.querySelectorAll('.navbar, .navbar-inverse, .navbar-default');
+    navbars.forEach(function(navbar) {
+      navbar.style.display = 'none';
+      navbar.style.height = '0px';
+    });
+    
+    // Verificar si la imagen se cargó correctamente
+    var img = document.querySelector('.custom-header img');
+    if (img) {
+      img.onload = function() {
+        console.log('Imagen del encabezado cargada correctamente');
+      };
+      img.onerror = function() {
+        console.log('Error al cargar la imagen del encabezado');
+        // Mostrar un encabezado de texto alternativo
+        var headerDiv = document.querySelector('.custom-header');
+        headerDiv.innerHTML = '<h1 style="background: linear-gradient(90deg, #1e3a8a, #3b82f6); color: white; padding: 20px; margin: 0; text-align: center;">Proyecto de amojonamiento, Datos GNSS</h1>';
+      };
+    }
+  }, 100);
+});
+</script>
 ```
 
 ```{r cargadatos}
