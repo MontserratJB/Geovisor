@@ -1,9 +1,11 @@
 ---
-title: "Proyecto de amojonamiento, datos GNSS"
+title: ""
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
     vertical_layout: fill
+    navbar:
+      - { title: "", href: "#" }
 runtime: shiny
 ---
 
@@ -25,6 +27,46 @@ library(htmlwidgets)
 library(htmltools)
 library(purrr)
 library(shiny)
+library(shinydashboard)
+```
+
+```{=html}
+<!-- CSS para ocultar completamente el encabezado de flexdashboard -->
+<style>
+.navbar-brand {
+  display: none !important;
+}
+.navbar-header {
+  display: none !important;
+}
+.navbar {
+  display: none !important;
+}
+.navbar-inverse {
+  display: none !important;
+}
+.section.level1 h1 {
+  display: none !important;
+}
+/* Eliminar cualquier encabezado azul */
+.chart-title {
+  display: none !important;
+}
+/* Asegurar que el contenido ocupe todo el espacio */
+body, html {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.container-fluid {
+  padding: 0 !important;
+}
+</style>
+
+<!-- Encabezado personalizado con imagen -->
+<div style="width: 100%; text-align: center; background-color: #ffffff; padding: 0px; margin: 0px;">
+  <img src="https://raw.githubusercontent.com/MontserratJB/Geovisor/main/encabezado.png"
+       style="width: 100%; height: auto; display: block; margin: 0;">
+</div>
 ```
 
 ```{r cargadatos}
