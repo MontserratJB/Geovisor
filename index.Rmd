@@ -4,199 +4,89 @@ output:
   flexdashboard::flex_dashboard:
     orientation: rows
     vertical_layout: fill
+    css: |
+      <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet">
+      <style>
+      .navbar-brand {
+        font-family: 'Titillium Web', sans-serif !important;
+        font-weight: 600 !important;
+      }
+      .navbar-header .navbar-brand {
+        font-family: 'Titillium Web', sans-serif !important;
+      }
+      .navbar, .navbar-default {
+        background-color: #1a365d !important;
+        background-image: none !important;
+        border-color: #1a365d !important;
+      }
+      .navbar-default .navbar-brand {
+        color: white !important;
+      }
+      .navbar-nav > li > a {
+        color: white !important;
+      }
+      </style>
+runtime: shiny
 ---
 
-```{r setup, include=FALSE}
+
+```{r paquetes, include=FALSE}
 library(flexdashboard)
 library(dplyr)
 library(sf)
+library(terra)
+library(raster)
 library(leaflet)
 library(leaflet.providers)
 library(leaflet.extras)
 library(leaflet.extras2)
+library(ggplot2)
+library(plotly)
+library(DT)
+library(tidyverse)
 library(htmlwidgets)
 library(htmltools)
+library(purrr)
+library(shiny)
 ```
 
-```{=html}
-<!-- Meta tag para viewport responsive -->
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+```{r carga_datos}
+# Lectura de una capa vectorial (GeoJSON) de provincias proyectos de Montes de Oca
+mojones <-
+  st_read(
+    "https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Mojones.geojson",
+    quiet = TRUE
+  )
 
-<!-- CSS responsive optimizado para móviles -->
-<style>
-/* Ocultar encabezados de flexdashboard */
-.navbar-brand {
-  display: none !important;
-}
-.navbar-header {
-  display: none !important;
-}
-.navbar {
-  display: none !important;
-}
-.navbar-inverse {
-  display: none !important;
-}
-.section.level1 h1 {
-  display: none !important;
-}
-.chart-title {
-  display: none !important;
-}
+# Lectura de una capa vectorial (GeoJSON) de distritos de Montes de Oca
+cantones <-
+  st_read(
+    "https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Cantones.geojson",
+    quiet = TRUE
+  )
+```
 
-/* Reset y configuración base */
-body, html {
-  margin: 0 !important;
-  padding: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-}
-.container-fluid {
-  padding: 0 !important;
-  width: 100% !important;
-}
-
-/* Encabezado responsive */
-.header-container {
-  width: 100%;
-  text-align: center;
-  background-color: #ffffff;
-  padding: 0;
-  margin: 0;
-}
-
-.header-container img {
-  width: 100%;
-  height: auto;
-  display: block;
-  margin: 0;
-  max-height: 80px;
-}
-
-/* Estilos para popups en móviles */
-.leaflet-popup-content {
-  white-space: normal !important;
-  word-wrap: break-word !important;
-  max-width: 200px;
-  font-size: 12px;
-}
-
-/* Control de coordenadas responsive */
-.mouse-coords {
-  font-size: 10px !important;
-  padding: 2px 4px !important;
-  background: rgba(255,255,255,0.9) !important;
-  border-radius: 3px;
-}
-
-/* Controles de Leaflet optimizados para móviles */
-.leaflet-control-layers {
-  max-width: 250px !important;
-  font-size: 12px !important;
-}
-
-.leaflet-control-layers-expanded {
-  padding: 6px 8px 6px 6px !important;
-}
-
-/* Botón de descarga responsive */
-.download-button {
-  background: #28a745 !important;
-  padding: 6px 10px !important;
-  border-radius: 5px !important;
-  text-align: center !important;
-  box-shadow: 0px 2px 6px rgba(0,0,0,0.3) !important;
-  font-weight: normal !important;
-  cursor: pointer !important;
-  font-size: 12px !important;
-  max-width: 200px !important;
-}
-
-.download-button a {
-  color: white !important;
-  text-decoration: none !important;
-  display: block !important;
-}
-
-/* Media queries para diferentes tamaños de pantalla */
-@media (max-width: 768px) {
-  .header-container img {
-    max-height: 60px;
-  }
-  
+```{r mapa}
+# Estilo global para popups
+tags$style(HTML("
   .leaflet-popup-content {
-    max-width: 150px;
-    font-size: 11px;
+    white-space: normal !important;
+    word-wrap: break-word !important;
+    max-width: 250px;
   }
-  
-  .leaflet-control-layers {
-    max-width: 200px !important;
-    font-size: 11px !important;
-  }
-  
-  .download-button {
-    font-size: 10px !important;
-    padding: 4px 8px !important;
-    max-width: 180px !important;
-  }
-  
-  .mouse-coords {
-    font-size: 9px !important;
-  }
-}
+"))
 
-@media (max-width: 480px) {
-  .header-container img {
-    max-height: 50px;
-  }
-  
-  .leaflet-popup-content {
-    max-width: 120px;
-    font-size: 10px;
-  }
-  
-  .leaflet-control-layers {
-    max-width: 180px !important;
-    font-size: 10px !important;
-  }
-  
-  .download-button {
-    font-size: 9px !important;
-    padding: 3px 6px !important;
-    max-width: 160px !important;
-  }
-  
-  .mouse-coords {
-    display: none !important;
-  }
-}
-</style>
-
-<!-- Encabezado personalizado responsive -->
-<div class="header-container">
-  <img src="https://raw.githubusercontent.com/MontserratJB/Geovisor/main/encabezado.png"
-       alt="Encabezado Geovisor">
-</div>
-```
-
-```{r cargadatos}
-# Lectura de datos
-mojones <- st_read("https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Mojones.geojson", quiet = TRUE)
-cantones <- st_read("https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Cantones.geojson", quiet = TRUE)
-```
-
-```{r mapa-leaflet}
 # Icono de mojones
 icono_mojones <- makeIcon(
   iconUrl = "https://raw.githubusercontent.com/MontserratJB/Geovisor/main/pin.png",
-  iconWidth = 18,
-  iconHeight = 18
+  iconWidth = 20,
+  iconHeight = 20
 )
 
-# Crear popups dinámicos
+# Crear los popups dinámicos con hipervínculos cuando el valor es URL
 popup_mojones <- lapply(seq_len(nrow(mojones)), function(i) {
   row <- mojones[i, ]
-  content <- paste(
+  paste(
     sapply(names(row), function(n) {
       valor <- row[[n]]
       
@@ -205,150 +95,140 @@ popup_mojones <- lapply(seq_len(nrow(mojones)), function(i) {
         return(NULL)
       }
       
-      # Manejar valores nulos
+      # Manejar valores nulos de forma segura
       if (is.null(valor) || length(valor) == 0) {
         valor <- "Sin información"
       } else {
         valor <- as.character(valor)[1]
       }
       
+      # Verificar valores vacíos o NA
       if (is.na(valor) || valor == "" || valor == "NA") {
         valor <- "Sin información"
       }
       
-      # Verificar URL
-      is_url <- grepl("^https?://", valor, ignore.case = TRUE)
-      
-      # Truncar texto largo
-      if (!is_url && nchar(valor) > 30) {
-        valor <- paste0(substr(valor, 1, 30), "...")
-      }
-      
-      if (is_url) {
-        paste0("<strong>", n, ":</strong><br>",
-               "<a href='", valor, "' target='_blank' style='font-size:10px;'>Ver enlace</a>")
+      # Verificar si es URL
+      if (grepl("^https?://", valor, ignore.case = TRUE)) {
+        paste0("<strong>", n, ":</strong> ",
+               "<a href='", valor, "' target='_blank'>", valor, "</a>")
       } else {
         paste0("<strong>", n, ":</strong> ", valor)
       }
     }),
     collapse = "<br>"
   )
-  
-  # Limpiar contenido
-  content <- gsub("<br><br>", "<br>", content)
-  content <- gsub("^<br>|<br>$", "", content)
-  return(content)
 })
 
-# Crear mapa estático
-mapa <- leaflet() %>%
-  setView(lng = -83.912, lat = 9.45, zoom = 8) %>%
-  
-  # Mapas base
-  addProviderTiles(providers$CartoDB.DarkMatter, group = "CartoDB-Black") %>%
-  addTiles(group = "OSM") %>%
-  addProviderTiles("Esri.WorldImagery", group = "ESRI") %>%
-  
-  # Capas vectoriales
-  addPolygons(
-    data = cantones,
-    color = "blue",
-    fillColor = "transparent",
-    stroke = TRUE,
-    weight = 2.5,
-    group = "Cantones"
-  ) %>%
-  
-  addMarkers(
-    data = mojones,
-    lng = ~Longitud,
-    lat = ~Latitud,
-    icon = icono_mojones,
-    popup = popup_mojones,
-    group = "Mojones",
-    options = markerOptions(riseOnHover = TRUE)
-  ) %>%
-  
-  # Capa WMS
-  addWMSTiles(
-    baseUrl = "https://siri.snitcr.go.cr/Geoservicios/wms?",
-    layers = "catastro:catastro",
-    options = WMSTileOptions(
-      format = "image/png",
-      transparent = TRUE
-    ),
-    group = "Zona Catastrada"
-  ) %>%
-  
-  hideGroup("Zona Catastrada") %>%
-  
-  # Control de capas en esquina superior derecha (bajo botón de descarga)
-  addLayersControl(
-    baseGroups = c("ESRI", "CartoDB-Black", "OSM"),
-    overlayGroups = c("Cantones", "Zona Catastrada", "Mojones"),
-    options = layersControlOptions(collapsed = TRUE, autoZIndex = TRUE),
-    position = "topright"
-  ) %>%
-  
-  addScaleBar("bottomright", options = scaleBarOptions(imperial = FALSE)) %>%
-  addMiniMap(
-    tiles = providers$CartoDB.Positron,
-    toggleDisplay = TRUE,
-    minimized = TRUE,
-    width = 80,
-    height = 80
-  ) %>%
-  addResetMapButton() %>%
-  addFullscreenControl() %>%
-  addControlGPS(options = list(showPopup = FALSE)) %>%
-  addSearchOSM() %>%
-  
-  # Botón de descarga
-  addControl(
-    html = '<div class="download-button">
-              <a href="https://drive.google.com/uc?export=download&id=1vlRIi4IuviA7z_9T0G6np-4OVXj-1vWe" target="_blank">
-                📍 Descargar Mojones
-              </a>
-            </div>',
-    position = "topright"
-  ) %>%
-  
-  # Coordenadas del mouse
-  onRender("
-    function(el, x) {
-      var map = this;
-      var isMobile = window.innerWidth <= 480;
-      
-      if (!isMobile) {
+# Creación del mapa con mapas base
+output$mapa <- renderLeaflet({
+  leaflet() %>%
+    setView(lng = -83.912,
+            lat = 9.78,
+            zoom = 8) %>%
+    addProviderTiles(providers$CartoDB.DarkMatter, group = "CartoDB-Black") %>%
+    addTiles(group = "OSM") %>%
+    addProviderTiles("Esri.WorldImagery", group = "ESRI") %>%
+    
+    addScaleBar() %>%
+    
+    addPolygons(
+      data = cantones,
+      color = "blue",
+      fillColor = "transparent",
+      stroke = TRUE,
+      weight = 3.0,
+      group = "Cantones"
+    ) %>%
+    
+    addMarkers(
+      data = mojones,
+      lng = ~Longitud,
+      lat = ~Latitud,
+      icon = icono_mojones,
+      popup = popup_mojones,
+      group = "Mojones"
+    ) %>%
+    
+    addWMSTiles(
+      baseUrl = "https://siri.snitcr.go.cr/Geoservicios/wms?",
+      layers = "catastro:catastro",
+      options = WMSTileOptions(
+        format = "image/png",
+        transparent = TRUE
+      ),
+      group = "Zona Catastrada"
+    ) %>%
+    
+    hideGroup("Zona Catastrada") %>%
+    addLayersControl(
+      baseGroups = c("ESRI", "CartoDB-Black", "OSM"),
+      overlayGroups = c("Cantones", "Zona Catastrada", "Mojones"),
+      options = layersControlOptions(collapsed = TRUE),
+      position = "bottomleft"
+    ) %>%
+    
+    addScaleBar("bottomright") %>%
+    #addMiniMap() %>%
+    addResetMapButton() %>%
+    addFullscreenControl() %>%
+        addSearchOSM() %>%
+    addMeasure(
+      position = "bottomleft",
+      primaryLengthUnit = "meters",
+      primaryAreaUnit = "hectares",
+      activeColor = "#3D535D",
+      completedColor = "#7D4479"
+    ) %>%
+    addControlGPS() %>%
+    
+    # Botones de descarga
+    addControl(
+      html = '
+      <div style="
+           background:#28a745;
+           padding:4px 8px;
+           border-radius:5px;
+           text-align:center;
+           box-shadow: 0px 2px 6px rgba(0,0,0,0.3);
+           font-weight: normal;
+           cursor:pointer;">
+        <a href="https://drive.google.com/uc?export=download&id=1vlRIi4IuviA7z_9T0G6np-4OVXj-1vWe"
+           target="_blank"
+           style="color:white; text-decoration:none;">
+           📍 Descargar capa Mojones
+        </a>
+      </div>
+      ',
+      position = "topright"
+    ) %>%
+    
+    # Creacion de las coordenadas del cursor
+    onRender("
+      function(el, x) {
+        var map = this;
+
         var coordsDiv = L.control({position: 'bottomleft'});
-  
+
         coordsDiv.onAdd = function () {
           this._div = L.DomUtil.create('div', 'mouse-coords');
-          this._div.innerHTML = 'Mueve el cursor sobre el mapa';
+          this._div.style.padding = '4px';
+          this._div.style.background = 'rgba(255,255,255,0.8)';
+          this._div.style.font = '12px sans-serif';
+          this._div.innerHTML = 'Move the mouse over the map';
           return this._div;
         };
-  
+
         coordsDiv.addTo(map);
-  
+
         map.on('mousemove', function(e) {
-          coordsDiv._div.innerHTML = 
-            'Lat: ' + e.latlng.lat.toFixed(5) + 
+          coordsDiv._div.innerHTML =
+            'Lat: ' + e.latlng.lat.toFixed(5) +
             ' , Lng: ' + e.latlng.lng.toFixed(5);
         });
       }
-      
-      // Optimización para dispositivos táctiles
-      if ('ontouchstart' in window) {
-        map.dragging.disable();
-        map.tap.disable();
-        setTimeout(function() {
-          map.dragging.enable();
-          map.tap.enable();
-        }, 1000);
-      }
-    }
-  ")
+    ")
+})
 
-# Mostrar mapa
-mapa
+# Output del mapa
+leafletOutput("mapa", height = "600px")
 ```
