@@ -1,33 +1,21 @@
 ---
-title: ""
+title: "Proyecto de amojonamiento, datos GNSS"
 output: 
   flexdashboard::flex_dashboard:
     orientation: rows
     vertical_layout: fill
-    navbar:
-      - { title: "", href: "#" }
-runtime: shiny
 ---
 
 ```{r setup, include=FALSE}
 library(flexdashboard)
 library(dplyr)
 library(sf)
-library(terra)
-library(raster)
 library(leaflet)
 library(leaflet.providers)
 library(leaflet.extras)
 library(leaflet.extras2)
-library(ggplot2)
-library(plotly)
-library(DT)
-library(tidyverse)
 library(htmlwidgets)
 library(htmltools)
-library(purrr)
-library(shiny)
-library(shinydashboard)
 ```
 
 ```{=html}
@@ -82,7 +70,7 @@ body, html {
   height: auto;
   display: block;
   margin: 0;
-  max-height: 80px; /* Limitar altura en móviles */
+  max-height: 80px;
 }
 
 /* Estilos para popups en móviles */
@@ -178,15 +166,9 @@ body, html {
     max-width: 160px !important;
   }
   
-  /* Ocultar coordenadas del mouse en pantallas muy pequeñas */
   .mouse-coords {
     display: none !important;
   }
-}
-
-/* Estilos para pantalla completa en móviles */
-.leaflet-fullscreen-on .leaflet-control-container {
-  display: block !important;
 }
 </style>
 
@@ -198,57 +180,46 @@ body, html {
 ```
 
 ```{r cargadatos}
-# Lectura de una capa vectorial (GeoJSON) de provincias proyectos de Montes de Oca
-mojones <-
-  st_read(
-    "https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Mojones.geojson",
-    quiet = TRUE
-  )
-
-# Lectura de una capa vectorial (GeoJSON) de distritos de Montes de Oca
-cantones <-
-  st_read(
-    "https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Cantones.geojson",
-    quiet = TRUE
-  )
+# Lectura de datos
+mojones <- st_read("https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Mojones.geojson", quiet = TRUE)
+cantones <- st_read("https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Cantones.geojson", quiet = TRUE)
 ```
 
 ```{r mapa-leaflet}
-#Icono de mojones optimizado para móviles
+# Icono de mojones
 icono_mojones <- makeIcon(
   iconUrl = "https://raw.githubusercontent.com/MontserratJB/Geovisor/main/pin.png",
-  iconWidth = 18,  # Ligeramente más pequeño para móviles
+  iconWidth = 18,
   iconHeight = 18
 )
 
-# Crear los popups dinámicos optimizados para móviles
+# Crear popups dinámicos
 popup_mojones <- lapply(seq_len(nrow(mojones)), function(i) {
   row <- mojones[i, ]
   content <- paste(
     sapply(names(row), function(n) {
       valor <- row[[n]]
       
-      # Manejar valores que no sean de geometría
+      # Omitir geometría
       if (n == "geometry") {
-        return(NULL)  # Omitir la geometría del popup
+        return(NULL)
       }
       
-      # Convertir a character de forma segura y tomar solo el primer elemento
+      # Manejar valores nulos
       if (is.null(valor) || length(valor) == 0) {
         valor <- "Sin información"
       } else {
-        valor <- as.character(valor)[1]  # Tomar solo el primer elemento
+        valor <- as.character(valor)[1]
       }
       
-      # Verificar valores vacíos o NA
       if (is.na(valor) || valor == "" || valor == "NA") {
         valor <- "Sin información"
       }
       
-      # Verificar si es URL
+      # Verificar URL
       is_url <- grepl("^https?://", valor, ignore.case = TRUE)
       
-      # Truncar valores muy largos para móviles (solo si no es URL)
+      # Truncar texto largo
       if (!is_url && nchar(valor) > 30) {
         valor <- paste0(substr(valor, 1, 30), "...")
       }
@@ -263,130 +234,121 @@ popup_mojones <- lapply(seq_len(nrow(mojones)), function(i) {
     collapse = "<br>"
   )
   
-  # Remover elementos NULL y limpiar
-  content <- gsub("<br><br>", "<br>", content)  # Limpiar BRs dobles
-  content <- gsub("^<br>|<br>$", "", content)   # Limpiar BRs al inicio/final
-  
+  # Limpiar contenido
+  content <- gsub("<br><br>", "<br>", content)
+  content <- gsub("^<br>|<br>$", "", content)
   return(content)
 })
 
-#Creación del mapa optimizado para móviles
-output$mapa <- renderLeaflet({
-  leaflet() %>%
-    setView(lng = -83.912, 
-            lat = 9.45, 
-            zoom = 8) %>%
-    
-    # Mapas base
-    addProviderTiles(providers$CartoDB.DarkMatter, group = "CartoDB-Black") %>%
-    addTiles(group = "OSM") %>%
-    addProviderTiles("Esri.WorldImagery", group = "ESRI") %>%
-    
-    # Capas vectoriales
-    addPolygons(
-      data = cantones,
-      color = "blue",
-      fillColor = "transparent",
-      stroke = TRUE,
-      weight = 2.5,  # Líneas ligeramente más finas para móviles
-      group = "Cantones"
-    ) %>%
-    
-    addMarkers(
-      data = mojones,
-      lng = ~Longitud,
-      lat = ~Latitud,
-      icon = icono_mojones,
-      popup = popup_mojones,
-      group = "Mojones",
-      options = markerOptions(riseOnHover = TRUE)  # Mejora la interacción táctil
-    ) %>%
-    
-    # Capa WMS
-    addWMSTiles(
-      baseUrl = "https://siri.snitcr.go.cr/Geoservicios/wms?",
-      layers = "catastro:catastro",
-      options = WMSTileOptions(
-        format = "image/png",
-        transparent = TRUE
-      ),
-      group = "Zona Catastrada"
-    ) %>%
-    
-    hideGroup("Zona Catastrada") %>%
-    
-    # Control de capas optimizado para móviles
-    addLayersControl(
-      baseGroups = c("ESRI", "CartoDB-Black", "OSM"),
-      overlayGroups = c("Cantones", "Zona Catastrada", "Mojones"),
-      options = layersControlOptions(collapsed = TRUE, autoZIndex = TRUE),
-      position = "topleft"  # Mejor posición para móviles
-    ) %>%
-    
-    # Controles optimizados para móviles
-    addScaleBar("bottomright", options = scaleBarOptions(imperial = FALSE)) %>%
-    addMiniMap(
-      tiles = providers$CartoDB.Positron,
-      toggleDisplay = TRUE,
-      minimized = TRUE,  # Minimizado por defecto en móviles
-      width = 80,        # Más pequeño para móviles
-      height = 80
-    ) %>%
-    addResetMapButton() %>%
-    addFullscreenControl() %>%
-    addControlGPS(options = list(showPopup = FALSE)) %>%  # Sin popup para ahorrar espacio
-    addSearchOSM() %>%
-    
-    # Botón de descarga responsive
-    addControl(
-      html = paste0('
-      <div class="download-button">
-        <a href="https://drive.google.com/uc?export=download&id=1vlRIi4IuviA7z_9T0G6np-4OVXj-1vWe" 
-           target="_blank">
-           📍 Descargar Mojones
-        </a>
-      </div>
-      '),
-      position = "topright"
-    ) %>%
-    
-    # Coordenadas del cursor (se oculta en pantallas muy pequeñas)
-    onRender("
-      function(el, x) {
-        var map = this;
-        var isMobile = window.innerWidth <= 480;
-        
-        if (!isMobile) {
-          var coordsDiv = L.control({position: 'bottomleft'});
-    
-          coordsDiv.onAdd = function () {
-            this._div = L.DomUtil.create('div', 'mouse-coords');
-            this._div.innerHTML = 'Mueve el cursor sobre el mapa';
-            return this._div;
-          };
-    
-          coordsDiv.addTo(map);
-    
-          map.on('mousemove', function(e) {
-            coordsDiv._div.innerHTML = 
-              'Lat: ' + e.latlng.lat.toFixed(5) + 
-              ' , Lng: ' + e.latlng.lng.toFixed(5);
-          });
-        }
-        
-        // Optimización para dispositivos táctiles
-        if ('ontouchstart' in window) {
-          map.dragging.disable();
-          map.tap.disable();
-          setTimeout(function() {
-            map.dragging.enable();
-            map.tap.enable();
-          }, 1000);
-        }
+# Crear mapa estático
+mapa <- leaflet() %>%
+  setView(lng = -83.912, lat = 9.45, zoom = 8) %>%
+  
+  # Mapas base
+  addProviderTiles(providers$CartoDB.DarkMatter, group = "CartoDB-Black") %>%
+  addTiles(group = "OSM") %>%
+  addProviderTiles("Esri.WorldImagery", group = "ESRI") %>%
+  
+  # Capas vectoriales
+  addPolygons(
+    data = cantones,
+    color = "blue",
+    fillColor = "transparent",
+    stroke = TRUE,
+    weight = 2.5,
+    group = "Cantones"
+  ) %>%
+  
+  addMarkers(
+    data = mojones,
+    lng = ~Longitud,
+    lat = ~Latitud,
+    icon = icono_mojones,
+    popup = popup_mojones,
+    group = "Mojones",
+    options = markerOptions(riseOnHover = TRUE)
+  ) %>%
+  
+  # Capa WMS
+  addWMSTiles(
+    baseUrl = "https://siri.snitcr.go.cr/Geoservicios/wms?",
+    layers = "catastro:catastro",
+    options = WMSTileOptions(
+      format = "image/png",
+      transparent = TRUE
+    ),
+    group = "Zona Catastrada"
+  ) %>%
+  
+  hideGroup("Zona Catastrada") %>%
+  
+  # Control de capas en esquina superior derecha (bajo botón de descarga)
+  addLayersControl(
+    baseGroups = c("ESRI", "CartoDB-Black", "OSM"),
+    overlayGroups = c("Cantones", "Zona Catastrada", "Mojones"),
+    options = layersControlOptions(collapsed = TRUE, autoZIndex = TRUE),
+    position = "topright"
+  ) %>%
+  
+  addScaleBar("bottomright", options = scaleBarOptions(imperial = FALSE)) %>%
+  addMiniMap(
+    tiles = providers$CartoDB.Positron,
+    toggleDisplay = TRUE,
+    minimized = TRUE,
+    width = 80,
+    height = 80
+  ) %>%
+  addResetMapButton() %>%
+  addFullscreenControl() %>%
+  addControlGPS(options = list(showPopup = FALSE)) %>%
+  addSearchOSM() %>%
+  
+  # Botón de descarga
+  addControl(
+    html = '<div class="download-button">
+              <a href="https://drive.google.com/uc?export=download&id=1vlRIi4IuviA7z_9T0G6np-4OVXj-1vWe" target="_blank">
+                📍 Descargar Mojones
+              </a>
+            </div>',
+    position = "topright"
+  ) %>%
+  
+  # Coordenadas del mouse
+  onRender("
+    function(el, x) {
+      var map = this;
+      var isMobile = window.innerWidth <= 480;
+      
+      if (!isMobile) {
+        var coordsDiv = L.control({position: 'bottomleft'});
+  
+        coordsDiv.onAdd = function () {
+          this._div = L.DomUtil.create('div', 'mouse-coords');
+          this._div.innerHTML = 'Mueve el cursor sobre el mapa';
+          return this._div;
+        };
+  
+        coordsDiv.addTo(map);
+  
+        map.on('mousemove', function(e) {
+          coordsDiv._div.innerHTML = 
+            'Lat: ' + e.latlng.lat.toFixed(5) + 
+            ' , Lng: ' + e.latlng.lng.toFixed(5);
+        });
       }
-    ")
-})
+      
+      // Optimización para dispositivos táctiles
+      if ('ontouchstart' in window) {
+        map.dragging.disable();
+        map.tap.disable();
+        setTimeout(function() {
+          map.dragging.enable();
+          map.tap.enable();
+        }, 1000);
+      }
+    }
+  ")
 
-# Output del mapa con altura adaptativa
-leafletOutput("mapa", height = "calc(100vh - 80px)")  # Ajuste dinámico de altura
+# Mostrar mapa
+mapa
 ```
