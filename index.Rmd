@@ -4,8 +4,8 @@ output:
   flexdashboard::flex_dashboard:
     orientation: rows
     vertical_layout: fill
-    self_contained: false
-    theme: default
+    navbar:
+      - { title: "", href: "#" }
 runtime: shiny
 ---
 
@@ -28,103 +28,173 @@ library(htmltools)
 library(purrr)
 library(shiny)
 library(shinydashboard)
-
-# Verificar si estamos en GitHub Pages
-is_github_pages <- grepl("github.io", Sys.getenv("SERVER_NAME", ""))
 ```
 
 ```{=html}
-<!-- CSS mejorado para GitHub Pages -->
-<style type="text/css">
-/* Ocultar completamente todos los elementos del navbar */
-.navbar, .navbar-inverse, .navbar-default {
+<!-- Meta tag para viewport responsive -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+<!-- CSS responsive optimizado para móviles -->
+<style>
+/* Ocultar encabezados de flexdashboard */
+.navbar-brand {
   display: none !important;
-  height: 0 !important;
+}
+.navbar-header {
+  display: none !important;
+}
+.navbar {
+  display: none !important;
+}
+.navbar-inverse {
+  display: none !important;
+}
+.section.level1 h1 {
+  display: none !important;
+}
+.chart-title {
+  display: none !important;
+}
+
+/* Reset y configuración base */
+body, html {
   margin: 0 !important;
   padding: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
 }
-
-.navbar-brand, .navbar-header {
-  display: none !important;
-}
-
-/* Ocultar títulos */
-.section.level1 > h1:first-child,
-.chart-title,
-h1.title {
-  display: none !important;
-}
-
-/* Asegurar que el contenido empiece desde arriba */
-body {
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
 .container-fluid {
   padding: 0 !important;
-  margin: 0 !important;
+  width: 100% !important;
 }
 
-.chart-wrapper {
-  margin-top: 0 !important;
-}
-
-/* Estilo para el encabezado personalizado */
-.custom-header {
+/* Encabezado responsive */
+.header-container {
   width: 100%;
   text-align: center;
   background-color: #ffffff;
   padding: 0;
   margin: 0;
-  display: block;
-  position: relative;
-  z-index: 1000;
 }
 
-.custom-header img {
+.header-container img {
   width: 100%;
   height: auto;
   display: block;
   margin: 0;
-  border: none;
+  max-height: 80px; /* Limitar altura en móviles */
+}
+
+/* Estilos para popups en móviles */
+.leaflet-popup-content {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  max-width: 200px;
+  font-size: 12px;
+}
+
+/* Control de coordenadas responsive */
+.mouse-coords {
+  font-size: 10px !important;
+  padding: 2px 4px !important;
+  background: rgba(255,255,255,0.9) !important;
+  border-radius: 3px;
+}
+
+/* Controles de Leaflet optimizados para móviles */
+.leaflet-control-layers {
+  max-width: 250px !important;
+  font-size: 12px !important;
+}
+
+.leaflet-control-layers-expanded {
+  padding: 6px 8px 6px 6px !important;
+}
+
+/* Botón de descarga responsive */
+.download-button {
+  background: #28a745 !important;
+  padding: 6px 10px !important;
+  border-radius: 5px !important;
+  text-align: center !important;
+  box-shadow: 0px 2px 6px rgba(0,0,0,0.3) !important;
+  font-weight: normal !important;
+  cursor: pointer !important;
+  font-size: 12px !important;
+  max-width: 200px !important;
+}
+
+.download-button a {
+  color: white !important;
+  text-decoration: none !important;
+  display: block !important;
+}
+
+/* Media queries para diferentes tamaños de pantalla */
+@media (max-width: 768px) {
+  .header-container img {
+    max-height: 60px;
+  }
+  
+  .leaflet-popup-content {
+    max-width: 150px;
+    font-size: 11px;
+  }
+  
+  .leaflet-control-layers {
+    max-width: 200px !important;
+    font-size: 11px !important;
+  }
+  
+  .download-button {
+    font-size: 10px !important;
+    padding: 4px 8px !important;
+    max-width: 180px !important;
+  }
+  
+  .mouse-coords {
+    font-size: 9px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-container img {
+    max-height: 50px;
+  }
+  
+  .leaflet-popup-content {
+    max-width: 120px;
+    font-size: 10px;
+  }
+  
+  .leaflet-control-layers {
+    max-width: 180px !important;
+    font-size: 10px !important;
+  }
+  
+  .download-button {
+    font-size: 9px !important;
+    padding: 3px 6px !important;
+    max-width: 160px !important;
+  }
+  
+  /* Ocultar coordenadas del mouse en pantallas muy pequeñas */
+  .mouse-coords {
+    display: none !important;
+  }
+}
+
+/* Estilos para pantalla completa en móviles */
+.leaflet-fullscreen-on .leaflet-control-container {
+  display: block !important;
 }
 </style>
 
-<!-- Encabezado personalizado con verificación de URL -->
-<div class="custom-header">
-  <img src="https://raw.githubusercontent.com/MontserratJB/Geovisor/main/encabezado.png" 
-       alt="Encabezado del proyecto"
-       onerror="this.style.display='none'; console.log('Error cargando imagen del encabezado');">
+<!-- Encabezado personalizado responsive -->
+<div class="header-container">
+  <img src="https://raw.githubusercontent.com/MontserratJB/Geovisor/main/encabezado.png"
+       alt="Encabezado Geovisor">
 </div>
-
-<!-- Script para forzar la ocultación del navbar después de que la página cargue -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  // Ocultar navbar después de que la página cargue
-  setTimeout(function() {
-    var navbars = document.querySelectorAll('.navbar, .navbar-inverse, .navbar-default');
-    navbars.forEach(function(navbar) {
-      navbar.style.display = 'none';
-      navbar.style.height = '0px';
-    });
-    
-    // Verificar si la imagen se cargó correctamente
-    var img = document.querySelector('.custom-header img');
-    if (img) {
-      img.onload = function() {
-        console.log('Imagen del encabezado cargada correctamente');
-      };
-      img.onerror = function() {
-        console.log('Error al cargar la imagen del encabezado');
-        // Mostrar un encabezado de texto alternativo
-        var headerDiv = document.querySelector('.custom-header');
-        headerDiv.innerHTML = '<h1 style="background: linear-gradient(90deg, #1e3a8a, #3b82f6); color: white; padding: 20px; margin: 0; text-align: center;">Proyecto de amojonamiento, Datos GNSS</h1>';
-      };
-    }
-  }, 100);
-});
-</script>
 ```
 
 ```{r cargadatos}
@@ -141,158 +211,182 @@ cantones <-
     "https://raw.githubusercontent.com/MontserratJB/Geovisor/refs/heads/main/Cantones.geojson",
     quiet = TRUE
   )
-
 ```
 
-
 ```{r mapa-leaflet}
-
-# Estilo global para popups
-tags$style(HTML("
-  .leaflet-popup-content {
-    white-space: normal !important;
-    word-wrap: break-word !important;
-    max-width: 250px;
-  }
-"))
-
-#Icono de mojones
+#Icono de mojones optimizado para móviles
 icono_mojones <- makeIcon(
   iconUrl = "https://raw.githubusercontent.com/MontserratJB/Geovisor/main/pin.png",
-  iconWidth = 20,
-  iconHeight = 20
+  iconWidth = 18,  # Ligeramente más pequeño para móviles
+  iconHeight = 18
 )
 
-
-# Crear los popups dinámicos con hipervínculos cuando el valor es URL
+# Crear los popups dinámicos optimizados para móviles
 popup_mojones <- lapply(seq_len(nrow(mojones)), function(i) {
   row <- mojones[i, ]
-  paste(
+  content <- paste(
     sapply(names(row), function(n) {
       valor <- row[[n]]
-      if (grepl("^https?://", valor)) {
-        paste0("<strong>", n, ":</strong> ",
-               "<a href='", valor, "' target='_blank'>", valor, "</a>")
+      
+      # Manejar valores que no sean de geometría
+      if (n == "geometry") {
+        return(NULL)  # Omitir la geometría del popup
+      }
+      
+      # Convertir a character de forma segura y tomar solo el primer elemento
+      if (is.null(valor) || length(valor) == 0) {
+        valor <- "Sin información"
+      } else {
+        valor <- as.character(valor)[1]  # Tomar solo el primer elemento
+      }
+      
+      # Verificar valores vacíos o NA
+      if (is.na(valor) || valor == "" || valor == "NA") {
+        valor <- "Sin información"
+      }
+      
+      # Verificar si es URL
+      is_url <- grepl("^https?://", valor, ignore.case = TRUE)
+      
+      # Truncar valores muy largos para móviles (solo si no es URL)
+      if (!is_url && nchar(valor) > 30) {
+        valor <- paste0(substr(valor, 1, 30), "...")
+      }
+      
+      if (is_url) {
+        paste0("<strong>", n, ":</strong><br>",
+               "<a href='", valor, "' target='_blank' style='font-size:10px;'>Ver enlace</a>")
       } else {
         paste0("<strong>", n, ":</strong> ", valor)
       }
     }),
     collapse = "<br>"
   )
+  
+  # Remover elementos NULL y limpiar
+  content <- gsub("<br><br>", "<br>", content)  # Limpiar BRs dobles
+  content <- gsub("^<br>|<br>$", "", content)   # Limpiar BRs al inicio/final
+  
+  return(content)
 })
 
-#Creación del mapa con mapas base
+#Creación del mapa optimizado para móviles
 output$mapa <- renderLeaflet({
-leaflet() %>%
-  setView(lng = -83.912, 
-          lat = 9.45, 
-          zoom = 8) %>%
+  leaflet() %>%
+    setView(lng = -83.912, 
+            lat = 9.45, 
+            zoom = 8) %>%
+    
+    # Mapas base
     addProviderTiles(providers$CartoDB.DarkMatter, group = "CartoDB-Black") %>%
     addTiles(group = "OSM") %>%
     addProviderTiles("Esri.WorldImagery", group = "ESRI") %>%
     
-    addScaleBar() %>% 
- 
-  addPolygons(
-    data = cantones,
-    color = "blue",
-    fillColor = "transparent",
-    stroke = TRUE,
-    weight = 3.0,
-    group = "Cantones"
+    # Capas vectoriales
+    addPolygons(
+      data = cantones,
+      color = "blue",
+      fillColor = "transparent",
+      stroke = TRUE,
+      weight = 2.5,  # Líneas ligeramente más finas para móviles
+      group = "Cantones"
     ) %>%
-  
-  
-  addMarkers(
-   data = mojones,
-   lng = ~Longitud,
-   lat = ~Latitud,
-   icon = icono_mojones,
-   popup = popup_mojones,
-   group = "Mojones"
-  ) %>%
-  
-  
-  addWMSTiles(
-    baseUrl = "https://siri.snitcr.go.cr/Geoservicios/wms?",
-    layers = "catastro:catastro",
-    options = WMSTileOptions(
-      format = "image/png",
-      transparent = TRUE
-    ),
-    group = "Zona Catastrada"
-  ) %>%
     
-  hideGroup("Zona Catastrada") %>%  # <- esto la oculta al inicio
-  addLayersControl(
-    baseGroups = c("ESRI", "CartoDB-Black", "OSM"),
-    overlayGroups = c("Cantones", "Zona Catastrada", "Mojones"),
-    options = layersControlOptions(collapsed = TRUE),
-    position = "bottomleft"
-  )%>%
-
-    addScaleBar("bottomright") %>%
-    addMiniMap() %>%
+    addMarkers(
+      data = mojones,
+      lng = ~Longitud,
+      lat = ~Latitud,
+      icon = icono_mojones,
+      popup = popup_mojones,
+      group = "Mojones",
+      options = markerOptions(riseOnHover = TRUE)  # Mejora la interacción táctil
+    ) %>%
+    
+    # Capa WMS
+    addWMSTiles(
+      baseUrl = "https://siri.snitcr.go.cr/Geoservicios/wms?",
+      layers = "catastro:catastro",
+      options = WMSTileOptions(
+        format = "image/png",
+        transparent = TRUE
+      ),
+      group = "Zona Catastrada"
+    ) %>%
+    
+    hideGroup("Zona Catastrada") %>%
+    
+    # Control de capas optimizado para móviles
+    addLayersControl(
+      baseGroups = c("ESRI", "CartoDB-Black", "OSM"),
+      overlayGroups = c("Cantones", "Zona Catastrada", "Mojones"),
+      options = layersControlOptions(collapsed = TRUE, autoZIndex = TRUE),
+      position = "topleft"  # Mejor posición para móviles
+    ) %>%
+    
+    # Controles optimizados para móviles
+    addScaleBar("bottomright", options = scaleBarOptions(imperial = FALSE)) %>%
+    addMiniMap(
+      tiles = providers$CartoDB.Positron,
+      toggleDisplay = TRUE,
+      minimized = TRUE,  # Minimizado por defecto en móviles
+      width = 80,        # Más pequeño para móviles
+      height = 80
+    ) %>%
     addResetMapButton() %>%
     addFullscreenControl() %>%
-    addControlGPS() %>%
+    addControlGPS(options = list(showPopup = FALSE)) %>%  # Sin popup para ahorrar espacio
     addSearchOSM() %>%
-  
-#Botones de descarga
-  addControl(
-  html = '
-  <div style="
-       background:#28a745;           /* color verde */
-       padding:4px 8px;              /* espacio interno */
-       border-radius:5px;            /* bordes redondeados */
-       text-align:center; 
-       box-shadow: 0px 2px 6px rgba(0,0,0,0.3);
-       font-weight: normal;           /* letra normal */
-       cursor:pointer;">
-    <a href="https://drive.google.com/uc?export=download&id=1vlRIi4IuviA7z_9T0G6np-4OVXj-1vWe" 
-       target="_blank" 
-       style="color:white; text-decoration:none;">
-       📍 Descargar capa Mojones
-    </a>
-  </div>
-  ',
-  position = "topright"
-) %>%
-  
-#Creacion de las coordenadas del cursor    
-     onRender("
-        function(el, x) {
+    
+    # Botón de descarga responsive
+    addControl(
+      html = paste0('
+      <div class="download-button">
+        <a href="https://drive.google.com/uc?export=download&id=1vlRIi4IuviA7z_9T0G6np-4OVXj-1vWe" 
+           target="_blank">
+           📍 Descargar Mojones
+        </a>
+      </div>
+      '),
+      position = "topright"
+    ) %>%
+    
+    # Coordenadas del cursor (se oculta en pantallas muy pequeñas)
+    onRender("
+      function(el, x) {
         var map = this;
-
-        var coordsDiv = L.control({position: 'bottomleft'});
-  
-        coordsDiv.onAdd = function () {
-          this._div = L.DomUtil.create('div', 'mouse-coords');
-          this._div.style.padding = '4px';
-          this._div.style.background = 'rgba(255,255,255,0.8)';
-          this._div.style.font = '12px sans-serif';
-          this._div.innerHTML = 'Move the mouse over the map';
-          return this._div;
-        };
-  
-        coordsDiv.addTo(map);
-  
-        map.on('mousemove', function(e) {
-          coordsDiv._div.innerHTML = 
-            'Lat: ' + e.latlng.lat.toFixed(5) + 
-            ' , Lng: ' + e.latlng.lng.toFixed(5);
-        });
-    }
-  ")
+        var isMobile = window.innerWidth <= 480;
+        
+        if (!isMobile) {
+          var coordsDiv = L.control({position: 'bottomleft'});
+    
+          coordsDiv.onAdd = function () {
+            this._div = L.DomUtil.create('div', 'mouse-coords');
+            this._div.innerHTML = 'Mueve el cursor sobre el mapa';
+            return this._div;
+          };
+    
+          coordsDiv.addTo(map);
+    
+          map.on('mousemove', function(e) {
+            coordsDiv._div.innerHTML = 
+              'Lat: ' + e.latlng.lat.toFixed(5) + 
+              ' , Lng: ' + e.latlng.lng.toFixed(5);
+          });
+        }
+        
+        // Optimización para dispositivos táctiles
+        if ('ontouchstart' in window) {
+          map.dragging.disable();
+          map.tap.disable();
+          setTimeout(function() {
+            map.dragging.enable();
+            map.tap.enable();
+          }, 1000);
+        }
+      }
+    ")
 })
 
-# Output del mapa
-leafletOutput("mapa", height = "600px")
-
-
+# Output del mapa con altura adaptativa
+leafletOutput("mapa", height = "calc(100vh - 80px)")  # Ajuste dinámico de altura
 ```
-
-
-
-
-
